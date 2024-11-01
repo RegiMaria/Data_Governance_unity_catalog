@@ -1,55 +1,81 @@
 - CLIENTE
 
 ``````sql
-CREATE TABLE Cliente (
-    idcliente INT IDENTITY PRIMARY KEY NOT NULL,
-    nome VARCHAR(100),
-    cpf VARCHAR(11) UNIQUE NOT NULL,
-    idade INT NOT NULL,
-    data_nascimento DATE NOT NULL,
-    email VARCHAR(100),
-    telefone VARCHAR(20),
-    fonte_renda_id INT NOT NULL, 
-    faixa_renda_id INT NOT NULL, 
-    FOREIGN KEY (fonte_renda_id) REFERENCES FonteRenda(idfonte_renda),
-    FOREIGN KEY (faixa_renda_id) REFERENCES FaixaRenda(idFaixaRenda)
+CREATE TABLE cliente (
+	idcliente  INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	nome VARCHAR (100),
+	cpf VARCHAR (11) UNIQUE NOT NULL,
+	idade INT NOT NULL,
+	data_nascimento DATE NOT NULL,
+	email VARCHAR (100),
+	telefone VARCHAR (20),
+	profissao VARCHAR (100),
+	fonte_renda_id INT NOT NULL,
+	faixa_renda_id INT NOT NULL,
+	endereco_id INT NOT NULL,
+	FOREIGN KEY (fonte_renda_id) REFERENCES fonte_renda (idfonte_renda),
+	FOREIGN KEY (faixa_renda_id) REFERENCES faixa_renda (idfaixa_renda),
+	FOREIGN KEY (endereco_id) REFERENCES endereco (idendereco)
 );
 ``````
 
 - FONTE DE RENDA
 
 ``````sql
-CREATE TABLE FonteRenda (
-    idfonte_renda INT IDENTITY PRIMARY KEY NOT NULL,
-    Fonte_Renda VARCHAR(100) NOT NULL
+CREATE TABLE fonte_renda (
+    idfonte_renda INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    fonte_renda VARCHAR(100) NOT NULL
 );
 ``````
 
 - FAIXA DE RENDA
 
 ``````sql
-CREATE TABLE FaixaRenda (
-    idFaixaRenda INT IDENTITY PRIMARY KEY NOT NULL,
-    Faixa_Renda VARCHAR(100) NOT NULL,  
-    FonteRenda_id INT NOT NULL,  
-    renda_min DECIMAL(10, 2) NOT NULL, 
-    renda_max DECIMAL(10, 2) NOT NULL, 
-    FOREIGN KEY (FonteRenda_id) REFERENCES FonteRenda(idfonte_renda)
+CREATE TABLE faixa_renda (
+    idfaixa_renda INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    faixa_renda VARCHAR(100) NOT NULL
 );
-
 ``````
+
+- FAIXA_RENDA_FONTE_RENDA
+
+``````sql
+CREATE TABLE fonte_renda_faixa_renda (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    idfonte_renda INT NOT NULL,
+    idfaixa_renda INT NOT NULL,
+    FOREIGN KEY (idfonte_renda) REFERENCES fonte_renda(idfonte_renda),
+    FOREIGN KEY (idfaixa_renda) REFERENCES faixa_renda(idfaixa_renda)
+);
+``````
+
+- ENDERECO
+
+``````sql
+CREATE TABLE endereco (
+	idendereco INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	cep VARCHAR (20),
+	rua VARCHAR (50),
+	numero int,
+	bairro VARCHAR (50),
+	cidade VARCHAR (50),
+	estado VARCHAR (2)
+);
+``````
+
+
 
 - PRODUTO
 
 ``````SQL
-CREATE TABLE Produto (
-    idproduto INT IDENTITY PRIMARY KEY NOT NULL,
-    NomeProduto VARCHAR(255) NOT NULL,
-    Descrição TEXT,
-    TipoProduto VARCHAR(100) NOT NULL,
-    ValorMinimo DECIMAL(10, 2) NOT NULL,
-    ValorMaximo DECIMAL(10, 2) NOT NULL,
-    NumeroParcelasMaximo INT NOT NULL,
+CREATE TABLE produto (
+    idproduto INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nome_produto VARCHAR(255) NOT NULL,
+    descrição TEXT,
+    tipo_produto VARCHAR(100) NOT NULL,
+    valor_minimo DECIMAL(10, 2) NOT NULL,
+    valor_maximo DECIMAL(10, 2) NOT NULL,
+    numero_parcelas_maximo INT NOT NULL,
     comprova_renda BOOLEAN DEFAULT FALSE,  
     exige_garantia BOOLEAN DEFAULT FALSE,
     consignado BOOLEAN DEFAULT FALSE 
@@ -59,45 +85,48 @@ CREATE TABLE Produto (
 - CONTRATO
 
 ``````sql
-CREATE TABLE Contrato (
-    idcontrato INT IDENTITY PRIMARY KEY NOT NULL,
-    ValorEmprestimo DECIMAL(10, 2) NOT NULL,
-    NumeroParcelas INT NOT NULL,
-    TaxaJuros DECIMAL(5, 2) NOT NULL,
-    DataContratacao DATE NOT NULL,
-    DataFimContrato DATE, 
-    StatusContrato VARCHAR(20) NOT NULL 
-        CHECK (StatusContrato IN ('Ativo', 'Encerrado', 'Inadimplente')),
-    cliente_id INT NOT NULL,
+CREATE TABLE contrato (
+    idcontrato INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	codigo_contrato VARCHAR (100) NOT NULL,
+    valor_emprestimo DECIMAL(10, 2) NOT NULL,
+    numero_parcelas INT NOT NULL,
+    taxa_juros DECIMAL(5, 2) NOT NULL,
+    data_contratação DATE NOT NULL,
+    data_fim_contrato DATE, 
+    status_contrato VARCHAR(20) NOT NULL,
+    metodo_pagamento VARCHAR(50),  
+    observacoes TEXT, 
+	cliente_id INT NOT NULL,
     produto_id INT NOT NULL,
-    MetodoPagamento VARCHAR(50),  
-    Observacoes TEXT, 
-    FOREIGN KEY (cliente_id) REFERENCES Cliente(idcliente),
-    FOREIGN KEY (produto_id) REFERENCES Produto(idproduto),
-    INDEX (StatusContrato),  
-    INDEX (DataContratacao)  
+    FOREIGN KEY (cliente_id) REFERENCES cliente(idcliente),
+    FOREIGN KEY (produto_id) REFERENCES produto(idproduto)  
 );
+
+CREATE INDEX idx_status_contrato ON contrato(status_contrato);
+CREATE INDEX idx_data_contratacao ON contrato(data_contratação);
+
 ``````
 
 - PAGAMENTO
 
 ``````sql
-CREATE TABLE Pagamento (
-    idpagamento INT IDENTITY PRIMARY KEY NOT NULL,
-    NumeroParcela INT NOT NULL,
-    ValorParcela DECIMAL(10, 2) NOT NULL,
-    DataVencimento DATE NOT NULL,
-    DataPagamento DATE,
-    StatusPagamento VARCHAR(20) NOT NULL 
-        CHECK (StatusPagamento IN ('Pago', 'Pago com atraso', 'Atrasado', 'Inadimplente')),
+CREATE TABLE pagamento (
+    idpagamento INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    numero_parcela INT NOT NULL,
+    valor_parcela DECIMAL(10, 2) NOT NULL,
+    data_vencimento DATE NOT NULL,
+    data_pagamento DATE,
+    status_pagamento VARCHAR(20) NOT NULL,
+	dias_atraso INT,
+	observacoes TEXT, 
     contrato_id INT NOT NULL,
-    FOREIGN KEY (contrato_id) REFERENCES Contrato(idcontrato),
     cliente_id INT NOT NULL,
     produto_id INT NOT NULL,
-    FOREIGN KEY (cliente_id) REFERENCES Cliente(idcliente),
-    FOREIGN KEY (produto_id) REFERENCES Produto(idproduto), 
-    Observacoes TEXT,  
-    INDEX (DataVencimento), 
-    INDEX (StatusPagamento) 
+	FOREIGN KEY (contrato_id) REFERENCES contrato(idcontrato),
+    FOREIGN KEY (cliente_id) REFERENCES cliente(idcliente),
+    FOREIGN KEY (produto_id) REFERENCES produto(idproduto)
 );
+
+CREATE INDEX idx_data_vencimento ON pagamento(data_vencimento);
+CREATE INDEX idx_status_pagamento ON pagamento(status_pagamento);
 ``````
